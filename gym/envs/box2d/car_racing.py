@@ -136,8 +136,7 @@ class CarRacing(gym.Env, EzPickle):
 
     def _create_track(self):
         CHECKPOINTS = 12
-
-        # Create checkpoints
+        # Create  
         checkpoints = []
         for c in range(CHECKPOINTS):
             alpha = 2*math.pi*c/CHECKPOINTS + self.np_random.uniform(0, 2*math.pi*1/CHECKPOINTS)
@@ -150,7 +149,7 @@ class CarRacing(gym.Env, EzPickle):
                 self.start_alpha = 2*math.pi*(-0.5)/CHECKPOINTS
                 rad = 1.5*TRACK_RAD
             checkpoints.append( (alpha, rad*math.cos(alpha), rad*math.sin(alpha)) )
-
+        self.checkpoints = checkpoints # [MY] save checkPoints
         #print "\n".join(str(h) for h in checkpoints)
         #self.road_poly = [ (    # uncomment this to see checkpoints
         #    [ (tx,ty) for a,tx,ty in checkpoints ],
@@ -276,7 +275,8 @@ class CarRacing(gym.Env, EzPickle):
                 b2_l = (x2 + side* TRACK_WIDTH        *math.cos(beta2), y2 + side* TRACK_WIDTH        *math.sin(beta2))
                 b2_r = (x2 + side*(TRACK_WIDTH+BORDER)*math.cos(beta2), y2 + side*(TRACK_WIDTH+BORDER)*math.sin(beta2))
                 # self.road_poly.append(( [b1_l, b1_r, b2_r, b2_l], (1,1,1) if i%2==0 else (1,0,0) )) # [MY] comment to disaple corner indicator
-        self.track = track
+        self.border = border # [MY] copy border to public
+        self.track = track # [MY] copy boder to public 
         return True
 
     def reset(self):
@@ -312,7 +312,7 @@ class CarRacing(gym.Env, EzPickle):
         # [MY] added detection of on track or not
         # [MY] when the speed is not zero: detect whether it is still eating the tiles which work with the detector at FrictionDetector
         # [MY] OFF_TRACK_TIME defines how many time steps be considered "off track"
-        if (self.true_speed >0.001):
+        if (self.true_speed >1):
             self.on_track = True
             if (self.on_track_buf <= 0 ):
                 self.on_track = False
@@ -332,6 +332,8 @@ class CarRacing(gym.Env, EzPickle):
             x, y = self.car.hull.position
             #if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD or not self.on_track:# terminate the 
+                if self.verbose == 1:
+                    print("off track!")
                 done = True
                 step_reward = -1
 
