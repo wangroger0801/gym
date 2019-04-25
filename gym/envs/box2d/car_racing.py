@@ -365,7 +365,7 @@ class CarRacing(gym.Env, EzPickle):
             WINDOW_W/2 - (scroll_x*zoom*math.cos(angle) - scroll_y*zoom*math.sin(angle)),
             WINDOW_H/4 - (scroll_x*zoom*math.sin(angle) + scroll_y*zoom*math.cos(angle)) )
         self.transform.set_rotation(angle)
-
+        self.rotation= angle
         self.car.draw(self.viewer, mode!="state_pixels")
 
         arr = None
@@ -503,10 +503,11 @@ if __name__=="__main__":
             if steps % 200 == 0 or done:
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
                 print("step {} total_reward {:+0.2f}".format(steps, total_reward))
-                import matplotlib.pyplot as plt
-                plt.imshow(s)
-                plt.savefig("test.jpeg")
+                #import matplotlib.pyplot as plt
+                #plt.imshow(s)
+                #plt.savefig("test.jpeg")
             steps += 1
             isopen = env.render()
             if done or restart or isopen == False: break
     env.close()
+
