@@ -69,6 +69,13 @@ ROAD_COLOR = [1, 1, 1] # [MY] Change road color to white [0.4, 0.4, 0.4]
 
 OFF_TRACK_TIME = 25 # [MY] the game will end when the car is completely off track for 25 steps
 
+DRAW_CONES = True
+CONE_INRERVAL = 4
+NUM_SEGMENTS = 10
+theta = 2 * 3.1415926 / float(NUM_SEGMENTS)
+R_C = math.cos(theta) # precalculate the sine and cosine
+R_S = math.sin(theta)
+R_R = 2
 class FrictionDetector(contactListener):
     def __init__(self, env):
         contactListener.__init__(self)
@@ -338,8 +345,8 @@ class CarRacing(gym.Env, EzPickle):
             x, y = self.car.hull.position
             #if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD or not self.on_track:# terminate the 
+                off_track = True
                 if self.verbose == 1:
-                    off_track = True
                     print("off track!")
                 done = True
                 step_reward = -100
@@ -444,44 +451,37 @@ class CarRacing(gym.Env, EzPickle):
             for p in poly:
                 gl.glVertex3f(p[0], p[1], 0)
         gl.glEnd()
+
         # render cones
-        idxx = 0
-        cone_interval = 4
-        
-        num_segments = 10
-        theta = 2 * 3.1415926 / float(num_segments)
-        c = np.cos(theta) # precalculate the sine and cosine
-        s = np.sin(theta)
-        r = 1
-
-        for poly, color in self.road_poly:
-            if idxx % cone_interval == 0: 
-                # blue
-                gl.glColor4f(0, 0, 1, 1)
-                x = 2
-                y = 0
-                pB = poly[0]
-                gl.glBegin(gl.GL_POLYGON)
-                for ii in range(num_segments):
-                    gl.glVertex3f(x + pB[0], y + pB[1],0) #output vertex 
-                    t = x
-                    x = c * x - s * y
-                    y = s * t + c * y
-                gl.glEnd()
-
-                # yellow
-                x = 2
-                y = 0
-                pY = poly[1]
-                gl.glBegin(gl.GL_POLYGON)
-                gl.glColor4f(1, 1, 0, 1)
-                for ii in range(num_segments):
-                    gl.glVertex3f(x + pY[0], y + pY[1],0) #output vertex 
-                    t = x
-                    x = c * x - s * y
-                    y = s * t + c * y
-                gl.glEnd()
-            idxx += 1
+        if DRAW_CONES:
+            idxx = 0
+            for poly, color in self.road_poly:
+                if idxx % CONE_INRERVAL == 0: 
+                    # blue
+                    gl.glColor4f(0, 0, 1, 1)
+                    x = R_R
+                    y = 0
+                    pB = poly[0]
+                    gl.glBegin(gl.GL_POLYGON)
+                    for ii in range(NUM_SEGMENTS):
+                        gl.glVertex3f(x + pB[0], y + pB[1],0) #output vertex 
+                        t = x
+                        x = R_C * x - R_S * y
+                        y = R_S * t + R_C * y
+                    gl.glEnd()
+                    # yellow
+                    x = R_R
+                    y = 0
+                    pY = poly[1]
+                    gl.glBegin(gl.GL_POLYGON)
+                    gl.glColor4f(1, 1, 0, 1)
+                    for ii in range(NUM_SEGMENTS):
+                        gl.glVertex3f(x + pY[0], y + pY[1],0) #output vertex 
+                        t = x
+                        x = R_C * x - R_S * y
+                        y = R_S * t + R_C * y
+                    gl.glEnd()
+                idxx += 1
 
 
     def render_indicators(self, W, H):
