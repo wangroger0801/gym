@@ -12,6 +12,11 @@ from gym.utils import colorize, seeding, EzPickle
 import pyglet
 from pyglet import gl
 
+import matplotlib as mpl
+mpl.use('TkAgg')  # or whatever other backend that you want
+import matplotlib.pyplot as plt
+
+
 # Easiest continuous control task to learn from pixels, a top-down racing environment.
 # Discreet control is reasonable in this environment as well, on/off discretisation is
 # fine.
@@ -94,7 +99,7 @@ class FrictionDetector(contactListener):
             #print tile.road_friction, "ADD", len(obj.tiles)
             if not tile.road_visited:
                 tile.road_visited = True
-                self.env.reward += 1000.0/len(self.env.track)
+                self.env.reward += 1 * 1000.0/len(self.env.track)
                 self.env.tile_visited_count += 1
         else:
             obj.tiles.remove(tile)
@@ -320,6 +325,7 @@ class CarRacing(gym.Env, EzPickle):
         
         step_reward = 0
         done = False
+        off_track = False
         if action is not None: # First step without action, called from reset()
             self.reward -= 0.1 # [MY] Here is the Reward
             # We actually don't want to count fuel spent, we want car to be faster.
@@ -333,11 +339,12 @@ class CarRacing(gym.Env, EzPickle):
             #if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD:
             if abs(x) > PLAYFIELD or abs(y) > PLAYFIELD or not self.on_track:# terminate the 
                 if self.verbose == 1:
+                    off_track = True
                     print("off track!")
                 done = True
-                step_reward = -1
+                step_reward = -100
 
-        return self.state, step_reward, done, {}
+        return self.state, step_reward, done, {"off_track":off_track}
 
     def render(self, mode='human'):
         assert mode in ['human', 'state_pixels', 'rgb_array']
@@ -434,6 +441,25 @@ class CarRacing(gym.Env, EzPickle):
                 gl.glVertex3f(p[0], p[1], 0)
         gl.glEnd()
 
+        gl.glBegin(gl.GL_TRIANGLES)
+        idxx = 0
+        cone_interval = 3
+        for poly, color in self.road_poly:
+            if idxx % cone_interval == 0: 
+                gl.glColor4f(0, 0, 1, 1)
+                t_size = 2
+                gl.glVertex3f(poly[0][0], poly[0][1]+t_size, 0.0)
+                gl.glVertex3f(poly[0][0] - t_size, poly[0][1] - t_size, 0.0)
+                gl.glVertex3f(poly[0][0] + t_size, poly[0][1] - t_size, 0.0)
+
+                gl.glColor4f(1, 1, 0, 1)
+                t_size = 2
+                gl.glVertex3f(poly[1][0], poly[1][1]+t_size, 0.0)
+                gl.glVertex3f(poly[1][0] - t_size, poly[1][1] - t_size, 0.0)
+                gl.glVertex3f(poly[1][0] + t_size, poly[1][1] - t_size, 0.0)
+            idxx += 1
+        gl.glEnd()
+
     def render_indicators(self, W, H):
         gl.glBegin(gl.GL_QUADS)
         s = W/40.0
@@ -503,9 +529,8 @@ if __name__=="__main__":
             if steps % 200 == 0 or done:
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
                 print("step {} total_reward {:+0.2f}".format(steps, total_reward))
-                #import matplotlib.pyplot as plt
-                #plt.imshow(s)
-                #plt.savefig("test.jpeg")
+                plt.imshow(s)
+                plt.savefig("test.jpeg")
             steps += 1
             isopen = env.render()
             if done or restart or isopen == False: break
