@@ -111,7 +111,7 @@ class CarRacing(gym.Env, EzPickle):
         'video.frames_per_second' : FPS
     }
 
-    def __init__(self, verbose=1):
+    def __init__(self, verbose=0):
         EzPickle.__init__(self)
         self.seed()
         self.contactListener_keepref = FrictionDetector(self)
@@ -372,7 +372,7 @@ class CarRacing(gym.Env, EzPickle):
             WINDOW_W/2 - (scroll_x*zoom*math.cos(angle) - scroll_y*zoom*math.sin(angle)),
             WINDOW_H/4 - (scroll_x*zoom*math.sin(angle) + scroll_y*zoom*math.cos(angle)) )
         self.transform.set_rotation(angle)
-        self.rotation= angle
+        self.rotation= angle # rotation of the map
         self.car.draw(self.viewer, mode!="state_pixels")
 
         arr = None
@@ -419,6 +419,10 @@ class CarRacing(gym.Env, EzPickle):
         if self.viewer is not None:
             self.viewer.close()
             self.viewer = None
+    @staticmethod
+    def rotate(p0, px, a):
+        return ((px[0] - p0[0])*math.cos(a) - (px[1] - p0[1])*math.sin(a) + p0[0],
+                    (px[0] - p0[0])*math.sin(a) + (px[1] - p0[1])*math.cos(a) + p0[1])
 
     def render_road(self):
         gl.glBegin(gl.GL_QUADS)
@@ -440,25 +444,45 @@ class CarRacing(gym.Env, EzPickle):
             for p in poly:
                 gl.glVertex3f(p[0], p[1], 0)
         gl.glEnd()
-
-        gl.glBegin(gl.GL_TRIANGLES)
+        # render cones
         idxx = 0
-        cone_interval = 3
+        cone_interval = 4
+        
+        num_segments = 10
+        theta = 2 * 3.1415926 / float(num_segments)
+        c = np.cos(theta) # precalculate the sine and cosine
+        s = np.sin(theta)
+        r = 1
+
         for poly, color in self.road_poly:
             if idxx % cone_interval == 0: 
+                # blue
                 gl.glColor4f(0, 0, 1, 1)
-                t_size = 2
-                gl.glVertex3f(poly[0][0], poly[0][1]+t_size, 0.0)
-                gl.glVertex3f(poly[0][0] - t_size, poly[0][1] - t_size, 0.0)
-                gl.glVertex3f(poly[0][0] + t_size, poly[0][1] - t_size, 0.0)
+                x = 2
+                y = 0
+                pB = poly[0]
+                gl.glBegin(gl.GL_POLYGON)
+                for ii in range(num_segments):
+                    gl.glVertex3f(x + pB[0], y + pB[1],0) #output vertex 
+                    t = x
+                    x = c * x - s * y
+                    y = s * t + c * y
+                gl.glEnd()
 
+                # yellow
+                x = 2
+                y = 0
+                pY = poly[1]
+                gl.glBegin(gl.GL_POLYGON)
                 gl.glColor4f(1, 1, 0, 1)
-                t_size = 2
-                gl.glVertex3f(poly[1][0], poly[1][1]+t_size, 0.0)
-                gl.glVertex3f(poly[1][0] - t_size, poly[1][1] - t_size, 0.0)
-                gl.glVertex3f(poly[1][0] + t_size, poly[1][1] - t_size, 0.0)
+                for ii in range(num_segments):
+                    gl.glVertex3f(x + pY[0], y + pY[1],0) #output vertex 
+                    t = x
+                    x = c * x - s * y
+                    y = s * t + c * y
+                gl.glEnd()
             idxx += 1
-        gl.glEnd()
+
 
     def render_indicators(self, W, H):
         gl.glBegin(gl.GL_QUADS)
